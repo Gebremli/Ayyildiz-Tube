@@ -14,7 +14,9 @@ Vor dem ersten Test wurde auch das unveränderte LibreTube v32.1 gebaut, um eige
 | Release-APK lokal, mit R8 minimiert und signiert | Erfolgreich, 8,7 MB |
 | Unit-Tests | 14 von 14 bestanden, davon 5 neue für die Update-Logik |
 | Lint | 581 Meldungen der Stufe „Error“, fast alle fehlende Fremdsprachen-Übersetzungen aus LibreTube; der Build bricht dadurch nicht ab |
-| GitHub-Actions-Build | **Nicht ausgeführt**, kein GitHub-Zugang |
+| GitHub-Actions-Build | Erfolgreich: Kompilierung, Tests, Lint, APK-Prüfung und Artefakt |
+| GitHub-Actions-Release | Erfolgreich: signierte APK, Prüfsumme und Quellcode-Archiv veröffentlicht |
+| Signatur des Releases | Zertifikat `e6225c8c…5b48e2`, identisch mit dem lokal erzeugten Schlüssel |
 
 ## Im Emulator getestet
 
@@ -42,13 +44,19 @@ Vor dem ersten Test wurde auch das unveränderte LibreTube v32.1 gebaut, um eige
 | Untere Navigation | Funktioniert | Alle 5 Tabs geöffnet |
 | Deutsche Oberfläche | Funktioniert | Alle besuchten Bereiche deutsch; 1 fehlender Text ergänzt |
 | App-Icon | Funktioniert | Sichtprüfung in der App-Übersicht |
+| Update-Erkennung beim Start | Funktioniert | Test-Build 1.9.9 fand das echte Release v2.0.0 und zeigte beide Versionen |
+| Update-Download und Prüfung | Funktioniert | Prüfsumme, Paketname, Version und Signatur bestanden; danach Android-Installer |
+| Installation nur mit Zustimmung | Funktioniert | Android fragte selbst nach, auch die Erlaubnis für die Quelle |
+| Bestehende Installation bleibt erhalten | Funktioniert | Version 2.0.0, erstes Installationsdatum unverändert, Verlauf aus 1.9.9 noch vorhanden |
+| Wiedergabe mit der APK aus GitHub Actions | Funktioniert | Position 10,2 s → 19,2 s nach dem Update |
+| Kein Update-Hinweis auf aktueller Version | Funktioniert | 2.0.0 startete ohne Dialog |
 
 **Werbung:** In den 6 getesteten Videos erschien keine Werbung. Das ist eine Stichprobe und kein Nachweis vollständiger Werbefreiheit. In Videos eingebaute Sponsorenteile werden nur übersprungen, wenn sie in der SponsorBlock-Datenbank eingetragen sind.
 
 ## Noch nicht getestet
 
-- **Update-Funktion im echten Ablauf:** Nur die Versions- und Prüfsummenlogik ist per Unit-Test geprüft. Prüfung, Download, Signaturprüfung und Installation wurden nie gegen ein echtes GitHub Release ausgeführt.
-- **GitHub-Workflows:** Beide wurden noch nie ausgeführt.
+- **Abwehr manipulierter Updates:** Getestet wurde nur der Erfolgsfall. Eine falsche Prüfsumme oder fremde Signatur wurde nicht im echten Ablauf provoziert. Das Lesen der Prüfsumme und der Versionsvergleich sind per Unit-Test geprüft.
+- **Abos über ein Update hinweg:** Als Datenbeweis diente der Verlauf. Ein Abo wurde dabei nicht geprüft, weil der Testklick auf „Abonnieren“ vom Update-Dialog abgefangen wurde.
 - **Echtes Smartphone:** Hardware-Decoder, Akku und Hersteller-Energiesparmodi sind ungeprüft.
 - **Andere Android-Versionen:** Nur Android 14 wurde getestet.
 - **Meldung bei Wiedergabefehlern:** Der neue Hinweis bei Fehlern während der Wiedergabe ist eingebaut, wurde aber nie ausgelöst.
@@ -63,6 +71,8 @@ Vor dem ersten Test wurde auch das unveränderte LibreTube v32.1 gebaut, um eige
 - **Trends und Downloads:** Sie sind wegen der Grenze von 5 Menüpunkten nicht mehr in der unteren Leiste. Trends liegt auf der Startseite, Downloads in der Merkliste.
 - **Google-Anmeldung:** Sie ist nicht eingebaut, weil es dafür keine offiziell unterstützte Lösung für diese App gibt.
 - **Bisherige App 1.5:** Sie lässt sich nicht aktualisieren, wenn sie anders signiert ist oder einen anderen Paketnamen hat. Dann ist eine Neuinstallation nötig.
+- **Update-Dialog:** Nach „Später“ erscheint er bei jedem App-Start wieder und auch beim Öffnen von Videolinks. Eine Version lässt sich nicht dauerhaft überspringen.
+- **Erste Aktualisierung:** Android verlangt einmalig die Erlaubnis, Apps aus Ayyıldız Tube zu installieren. Diese Systemseite ist je nach Gerät anders beschriftet.
 - **Test-Builds:** Die Debug-APK heißt `com.ayyildiztube.app.debug` und kann sich nicht selbst aktualisieren.
 
 ## Behobene Fehler
@@ -74,3 +84,6 @@ Vor dem ersten Test wurde auch das unveränderte LibreTube v32.1 gebaut, um eige
 | Wiedergabefehler blieben stumm | `onPlayerError` versuchte nur erneut abzuspielen | Verständliche deutsche Meldung |
 | Oben stand weiter „LibreTube“ | Schriftzug war im Code fest eingetragen | Durch „Ayyıldız Tube“ ersetzt |
 | Altes Skript brauchte Pillow und ersetzte nicht alle Icons | PNG-Verarbeitung und unvollständiges Patchen | Vektor-Icon für alle Varianten, nur noch Python-Standardbibliothek |
+| GitHub Actions lief nie | Workflow lag im Hauptordner statt in `.github/workflows/` | An den richtigen Ort verschoben |
+| Build brach beim SDK-Setup ab | `setup-android@v3` verlangte das entfernte Paket `tools` | Vorinstalliertes SDK des Runners verwendet |
+| Bericht meldete Erfolg ohne APK | Die Pipe mit `tee` verschluckte den Fehlercode | `pipefail` gesetzt |
