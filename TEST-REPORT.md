@@ -53,6 +53,17 @@ Vor dem ersten Test wurde auch das unveränderte LibreTube v32.1 gebaut, um eige
 
 **Werbung:** In den 6 getesteten Videos erschien keine Werbung. Das ist eine Stichprobe und kein Nachweis vollständiger Werbefreiheit. In Videos eingebaute Sponsorenteile werden nur übersprungen, wenn sie in der SponsorBlock-Datenbank eingetragen sind.
 
+## Automatische Übernahme von LibreTube
+
+| Prüfung | Ergebnis | Nachweis |
+| --- | --- | --- |
+| Lauf ohne neue Version | Funktioniert | Meldete „Keine neue Version“, nichts gebaut oder veröffentlicht |
+| Erzwungener Durchlauf | Funktioniert | Build, Tests, Tag und Release v2.0.1 ohne manuellen Eingriff |
+| Signatur von v2.0.1 | Funktioniert | Gleiches Zertifikat wie v2.0.0, Prüfsumme stimmt |
+| Patch-Skript auf v32.1 | Funktioniert | Quellcode identisch mit dem getesteten Stand |
+
+**Nicht getestet:** Es gab noch keine echte neue LibreTube-Version, der Lauf wurde erzwungen und nutzte weiter v32.1. Ob künftige Versionen sich patchen lassen, zeigt sich erst dann. Auch die Fehlermeldung als Issue wurde nie ausgelöst. Die Automatik prüft keine Videowiedergabe, eine fehlerhafte Version kann also bei allen Nutzern landen.
+
 ## Noch nicht getestet
 
 - **Abwehr manipulierter Updates:** Getestet wurde nur der Erfolgsfall. Eine falsche Prüfsumme oder fremde Signatur wurde nicht im echten Ablauf provoziert. Das Lesen der Prüfsumme und der Versionsvergleich sind per Unit-Test geprüft.
