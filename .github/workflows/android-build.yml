@@ -24,10 +24,12 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      - uses: android-actions/setup-android@v3
-
+      # The runner image already contains the Android SDK and its command line tools.
       - name: Android-SDK installieren
-        run: sdkmanager --install "platforms;android-36" "build-tools;36.0.0"
+        run: |
+          SDKMANAGER=$(find "$ANDROID_HOME/cmdline-tools" -name sdkmanager -type f | sort -V | tail -1)
+          yes | "$SDKMANAGER" --licenses > /dev/null || true
+          "$SDKMANAGER" --install "platforms;android-36" "build-tools;36.0.0" > /dev/null
 
       - name: LibreTube-Quellcode laden
         run: git clone --depth 1 --branch "$LIBRETUBE_TAG" https://github.com/libre-tube/LibreTube.git upstream
@@ -43,7 +45,9 @@ jobs:
 
       - name: APK pruefen und Build-Bericht erstellen
         if: always()
-        run: bash tools/build_report.sh upstream | tee BUILD-REPORT.md >> "$GITHUB_STEP_SUMMARY"
+        run: |
+          set -o pipefail
+          bash tools/build_report.sh upstream | tee BUILD-REPORT.md >> "$GITHUB_STEP_SUMMARY"
 
       - name: Debug-APK bereitstellen
         uses: actions/upload-artifact@v4
