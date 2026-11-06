@@ -1,0 +1,11 @@
+# Signing material must never reach the repository.
+*.keystore
+*.jks
+keystore.properties
+*.b64
+
+upstream/
+dist/
+build/
+.gradle/
+BUILD-REPORT.md

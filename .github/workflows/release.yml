@@ -1,0 +1,93 @@
+name: Ayyildiz Tube Release
+
+# Starts when a version tag such as v2.0.1 is pushed.
+on:
+  push:
+    tags: ['v[0-9]+.[0-9]+.[0-9]+']
+
+permissions:
+  contents: write
+
+env:
+  LIBRETUBE_TAG: v32.1
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Signatur-Secrets pruefen
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+        run: |
+          for name in KEYSTORE_BASE64 KEYSTORE_PASSWORD KEY_ALIAS KEY_PASSWORD; do
+            if [ -z "${!name}" ]; then
+              echo "::error::GitHub-Secret $name fehlt. Ohne dauerhafte Signatur wird nichts veroeffentlicht."
+              exit 1
+            fi
+          done
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: android-actions/setup-android@v3
+
+      - name: Android-SDK installieren
+        run: sdkmanager --install "platforms;android-36" "build-tools;36.0.0"
+
+      - name: Quellcode laden und Branding integrieren
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          echo "VERSION=$VERSION" >> "$GITHUB_ENV"
+          git clone --depth 1 --branch "$LIBRETUBE_TAG" https://github.com/libre-tube/LibreTube.git upstream
+          python3 tools/rebrand_libretube.py upstream --version "$VERSION"
+
+      # Before any key material exists on disk: this archive is the GPL source offer.
+      - name: Vollstaendigen Quellcode fuer die GPL packen
+        run: |
+          mkdir -p dist
+          tar --exclude=.git --exclude=build --exclude=.gradle \
+            -czf "dist/Ayyildiz-Tube-${VERSION}-source.tar.gz" upstream
+
+      - name: Release-APK bauen
+        working-directory: upstream
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+        run: |
+          echo "$KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/release.keystore"
+          {
+            echo "storeFile=$RUNNER_TEMP/release.keystore"
+            echo "storePassword=$KEYSTORE_PASSWORD"
+            echo "keyAlias=$KEY_ALIAS"
+            echo "keyPassword=$KEY_PASSWORD"
+          } > keystore.properties
+          chmod +x ./gradlew
+          ./gradlew --no-daemon --console=plain testDebugUnitTest assembleRelease
+          rm -f keystore.properties "$RUNNER_TEMP/release.keystore"
+
+      - name: Signatur pruefen und Pruefsumme erzeugen
+        run: |
+          APK="Ayyildiz-Tube-${VERSION}.apk"
+          cp upstream/app/build/outputs/apk/release/app-release.apk "dist/$APK"
+          "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify --print-certs "dist/$APK" | tee dist/signature.txt
+          cd dist
+          sha256sum "$APK" > "$APK.sha256"
+          rm signature.txt
+
+      - name: GitHub Release veroeffentlichen
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" dist/* \
+            --title "Ayyıldız Tube $VERSION" \
+            --notes "Basiert auf LibreTube $LIBRETUBE_TAG (GPL-3.0-or-later). Der vollständige Quellcode liegt als Archiv bei."

@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:tools="http://schemas.android.com/tools" tools:ignore="MissingTranslation">
+    <string name="ayyildiz_developer" translatable="false">Ayyıldız Tube 2.0 · Erol Studio</string>
+
+    <string name="nav_shorts">Shorts</string>
+    <string name="nav_watchlist">Merkliste</string>
+
+    <string name="update_title">Neue Version %1$s</string>
+    <string name="update_versions">Installiert: %1$s\nVerfügbar: %2$s</string>
+    <string name="update_install">Herunterladen und installieren</string>
+    <string name="update_later">Später</string>
+    <string name="update_open_page">Release-Seite</string>
+    <string name="update_downloading">Update wird geladen: %1$d %%</string>
+    <string name="update_allow_install">Bitte erlaube Ayyıldız Tube in den Android-Einstellungen, Apps zu installieren, und tippe danach erneut auf „Herunterladen und installieren“.</string>
+    <string name="update_check_failed">Die Update-Prüfung ist fehlgeschlagen. Bitte prüfe deine Internetverbindung.</string>
+    <string name="update_error_no_apk">Diese Version enthält keine APK-Datei.</string>
+    <string name="update_error_no_checksum">Für diese Version fehlt die Prüfsumme. Aus Sicherheitsgründen wird sie nicht installiert.</string>
+    <string name="update_error_source">Die Download-Adresse gehört nicht zu Ayyıldız Tube. Das Update wurde abgebrochen.</string>
+    <string name="update_error_download">Der Download ist fehlgeschlagen. Bitte versuche es erneut.</string>
+    <string name="update_error_checksum">Die Prüfsumme stimmt nicht. Die Datei ist beschädigt oder wurde verändert und wurde gelöscht.</string>
+    <string name="update_error_invalid_apk">Die heruntergeladene Datei ist keine gültige Ayyıldız-Tube-APK.</string>
+    <string name="update_error_not_newer">Die heruntergeladene Datei ist nicht neuer als die installierte Version.</string>
+    <string name="update_error_signature">Die Signatur stimmt nicht mit der installierten App überein. Die Datei wurde nicht installiert. Test-Builds lassen sich nicht automatisch aktualisieren.</string>
+
+    <string name="player_error_network">Keine Verbindung zum Videoserver. Bitte prüfe deine Internetverbindung.</string>
+    <string name="player_error_source">Dieses Video lässt sich gerade nicht abspielen. Möglicherweise hat YouTube etwas verändert. Bitte versuche es später erneut oder prüfe in den Einstellungen, ob ein Update verfügbar ist.</string>
+    <string name="stream_load_error">Das Video konnte nicht geladen werden. Möglicherweise hat YouTube etwas verändert. Details: %1$s</string>
+</resources>

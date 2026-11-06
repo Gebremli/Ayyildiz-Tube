@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Upstream v32.1 has no German translation for this string. -->
+    <string name="courses">Kurse</string>
+</resources>
