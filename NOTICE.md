@@ -1,6 +1,6 @@
 # Lizenz- und Autorenhinweise
 
-Ayyıldız Tube ist eine modifizierte Version von **LibreTube** (v32.1).
+Ayyıldız Tube ist eine modifizierte Version von **LibreTube**. Die verwendete Version steht in `upstream-version.txt`.
 
 - Ursprungsprojekt: https://github.com/libre-tube/LibreTube
 - Urheberrecht am Ursprungscode: die LibreTube-Autorinnen und -Autoren
@@ -10,7 +10,7 @@ Ayyıldız Tube wird von Erol Studio unter derselben Lizenz weitergegeben und st
 
 ## Was verändert wurde
 
-Alle Änderungen gegenüber LibreTube v32.1 stehen nachvollziehbar in `tools/rebrand_libretube.py` und im Ordner `overlay/`:
+Alle Änderungen gegenüber LibreTube stehen nachvollziehbar in `tools/rebrand_libretube.py` und im Ordner `overlay/`:
 
 - Name, Paketkennung, Version, Icon und Standardfarbe
 - untere Navigation (Shorts, Merkliste, Einstellungen)

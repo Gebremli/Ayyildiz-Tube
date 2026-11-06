@@ -1,15 +1,13 @@
 name: Ayyildiz Tube Release
 
-# Starts when a version tag such as v2.0.1 is pushed.
+# Starts when a version tag such as v2.0.1 is pushed, or from auto-update.yml on such a tag.
 on:
   push:
     tags: ['v[0-9]+.[0-9]+.[0-9]+']
+  workflow_dispatch:
 
 permissions:
   contents: write
-
-env:
-  LIBRETUBE_TAG: v32.1
 
 jobs:
   release:
@@ -47,7 +45,9 @@ jobs:
       - name: Quellcode laden und Branding integrieren
         run: |
           VERSION="${GITHUB_REF_NAME#v}"
+          LIBRETUBE_TAG=$(tr -d '[:space:]' < upstream-version.txt)
           echo "VERSION=$VERSION" >> "$GITHUB_ENV"
+          echo "LIBRETUBE_TAG=$LIBRETUBE_TAG" >> "$GITHUB_ENV"
           git clone --depth 1 --branch "$LIBRETUBE_TAG" https://github.com/libre-tube/LibreTube.git upstream
           python3 tools/rebrand_libretube.py upstream --version "$VERSION"
 

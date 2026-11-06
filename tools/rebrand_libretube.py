@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
-"""Turn a clean LibreTube v32.1 checkout into Ayyıldız Tube.
+"""Turn a clean LibreTube checkout into Ayyıldız Tube.
 
+The upstream release to use is pinned in upstream-version.txt.
 The native player, SABR support, SponsorBlock and the GPL licence files stay untouched.
 Every text patch must match exactly once; if upstream changes, the script stops with an
 error instead of producing a half-patched app. Only the Python standard library is needed.
@@ -16,7 +17,6 @@ from pathlib import Path
 NAME = "Ayyıldız Tube"
 APP_ID = "com.ayyildiztube.app"
 DEFAULT_VERSION = "2.0.0"
-UPSTREAM_VERSION = "32.1"
 REPO_URL = "https://github.com/Gebremli/Ayyildiz-Tube"
 ROOT = Path(__file__).resolve().parents[1]
 OVERLAY = ROOT / "overlay"
@@ -51,10 +51,20 @@ def patch_file(src: Path, relative: Path | str, replacements: list[tuple[str, st
 
 
 def patch_gradle(src: Path, version: str) -> None:
+    # Upstream's own version numbers differ per release, so they are matched by pattern.
+    gradle = src / "app/build.gradle.kts"
+    content = gradle.read_text(encoding="utf-8")
+    for pattern, replacement in (
+        (r"versionCode = \d+", f"versionCode = {version_code(version)}"),
+        (r'versionName = "[^"]+"', f'versionName = "{version}"'),
+    ):
+        content, count = re.subn(pattern, replacement, content)
+        if count != 1:
+            raise RuntimeError(f"app/build.gradle.kts: {pattern!r} passte {count}-mal statt einmal")
+    gradle.write_text(content, encoding="utf-8")
+
     patch_file(src, "app/build.gradle.kts", [
         ('applicationId = "com.github.libretube"', f'applicationId = "{APP_ID}"'),
-        ("versionCode = 72", f"versionCode = {version_code(version)}"),
-        (f'versionName = "{UPSTREAM_VERSION}"', f'versionName = "{version}"'),
         ('resValue("string", "app_name", "LibreTube")', f'resValue("string", "app_name", "{NAME}")'),
         ('resValue("string", "app_name", "LibreTube Debug")',
          f'resValue("string", "app_name", "{NAME} Test")'),
@@ -229,8 +239,8 @@ def apply_overlay(src: Path) -> int:
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description=f"LibreTube v{UPSTREAM_VERSION} -> {NAME}")
-    parser.add_argument("source", type=Path, help=f"Pfad zum LibreTube-v{UPSTREAM_VERSION}-Quellcode")
+    parser = argparse.ArgumentParser(description=f"LibreTube -> {NAME}")
+    parser.add_argument("source", type=Path, help="Pfad zum LibreTube-Quellcode")
     parser.add_argument("--version", default=DEFAULT_VERSION, help="App-Version, z. B. 2.0.1")
     args = parser.parse_args()
 
@@ -240,8 +250,8 @@ def main() -> int:
     gradle = src / "app/build.gradle.kts"
     if not gradle.exists() or not (src / "gradlew").exists():
         parser.error("Das ist kein vollständiger LibreTube-Quellcodeordner.")
-    if f'versionName = "{UPSTREAM_VERSION}"' not in gradle.read_text(encoding="utf-8"):
-        parser.error(f"Nur LibreTube v{UPSTREAM_VERSION} ist geprüft, oder der Ordner ist schon gepatcht.")
+    if 'applicationId = "com.github.libretube"' not in gradle.read_text(encoding="utf-8"):
+        parser.error("Dieser Ordner ist schon gepatcht oder kein LibreTube-Quellcode.")
 
     patch_gradle(src, args.version)
     patch_strings(src)

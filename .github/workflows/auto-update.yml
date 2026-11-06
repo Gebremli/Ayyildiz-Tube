@@ -1,0 +1,131 @@
+name: LibreTube automatisch uebernehmen
+
+# Checks daily for a new stable LibreTube release. If it patches, builds and passes the unit
+# tests, a new Ayyildiz Tube version is published without manual approval.
+on:
+  schedule:
+    - cron: '17 4 * * *'
+  workflow_dispatch:
+    inputs:
+      force:
+        description: 'Auch ohne neue LibreTube-Version eine neue App-Version veroeffentlichen'
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+  actions: write
+  issues: write
+
+concurrency:
+  group: auto-update
+
+env:
+  GH_TOKEN: ${{ github.token }}
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+
+      - name: Neue LibreTube-Version suchen
+        id: check
+        env:
+          FORCE: ${{ inputs.force }}
+        run: |
+          CURRENT=$(tr -d '[:space:]' < upstream-version.txt)
+          # "latest" never returns prereleases such as the nightly build.
+          LATEST=$(gh api repos/libre-tube/LibreTube/releases/latest --jq .tag_name)
+          echo "Aktuell: $CURRENT, neueste stabile Version: $LATEST"
+          if ! [[ "$LATEST" =~ ^v[0-9]+(\.[0-9]+)+$ ]]; then
+            echo "::error::Unerwartete Versionsangabe: $LATEST"
+            exit 1
+          fi
+          NEWEST=$(printf '%s\n%s\n' "$CURRENT" "$LATEST" | sort -V | tail -1)
+          if { [ "$LATEST" != "$CURRENT" ] && [ "$NEWEST" = "$LATEST" ]; } || [ "$FORCE" = "true" ]; then
+            echo "new=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "new=false" >> "$GITHUB_OUTPUT"
+            echo 'Keine neue Version.'
+          fi
+          echo "tag=$NEWEST" >> "$GITHUB_OUTPUT"
+
+      - name: Naechste App-Version bestimmen
+        if: steps.check.outputs.new == 'true'
+        id: version
+        run: |
+          LAST=$(git tag --list 'v[0-9]*.[0-9]*.[0-9]*' --sort=-v:refname | head -1)
+          IFS=. read -r MAJOR MINOR PATCH <<< "${LAST#v}"
+          PATCH=$((PATCH + 1))
+          if [ "$PATCH" -gt 99 ]; then MINOR=$((MINOR + 1)); PATCH=0; fi
+          echo "next=$MAJOR.$MINOR.$PATCH" >> "$GITHUB_OUTPUT"
+          echo "Letzte Version $LAST, naechste $MAJOR.$MINOR.$PATCH"
+
+      - uses: actions/setup-java@v4
+        if: steps.check.outputs.new == 'true'
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Android-SDK installieren
+        if: steps.check.outputs.new == 'true'
+        run: |
+          SDKMANAGER=$(find "$ANDROID_HOME/cmdline-tools" -name sdkmanager -type f | sort -V | tail -1)
+          yes | "$SDKMANAGER" --licenses > /dev/null || true
+          "$SDKMANAGER" --install "platforms;android-36" "build-tools;36.0.0" > /dev/null
+
+      - name: LibreTube laden und Branding integrieren
+        if: steps.check.outputs.new == 'true'
+        env:
+          TAG: ${{ steps.check.outputs.tag }}
+          NEXT: ${{ steps.version.outputs.next }}
+        run: |
+          git clone --depth 1 --branch "$TAG" https://github.com/libre-tube/LibreTube.git upstream
+          python3 tools/rebrand_libretube.py upstream --version "$NEXT"
+
+      - name: Kompilieren und Tests
+        if: steps.check.outputs.new == 'true'
+        working-directory: upstream
+        run: |
+          chmod +x ./gradlew
+          ./gradlew --no-daemon --console=plain assembleDebug testDebugUnitTest
+
+      - name: APK pruefen
+        if: steps.check.outputs.new == 'true'
+        run: |
+          set -o pipefail
+          bash tools/build_report.sh upstream | tee -a "$GITHUB_STEP_SUMMARY"
+
+      # A tag pushed with the workflow token starts no other workflow, so release.yml is
+      # started explicitly. workflow_dispatch is exempt from that rule.
+      - name: Neue Version veroeffentlichen
+        if: steps.check.outputs.new == 'true'
+        env:
+          TAG: ${{ steps.check.outputs.tag }}
+          NEXT: ${{ steps.version.outputs.next }}
+        run: |
+          rm -rf upstream
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          echo "$TAG" > upstream-version.txt
+          git add upstream-version.txt
+          git diff --cached --quiet || git commit -m "LibreTube $TAG uebernommen"
+          git tag "v$NEXT"
+          git push origin HEAD:main "v$NEXT"
+          gh workflow run release.yml --ref "v$NEXT"
+
+      - name: Fehler als Issue melden
+        if: failure()
+        env:
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          TITLE='Automatische LibreTube-Uebernahme fehlgeschlagen'
+          OPEN=$(gh issue list --state open --search "$TITLE in:title" --json number --jq 'length')
+          if [ "$OPEN" = "0" ]; then
+            gh issue create --title "$TITLE" --body "Es wurde keine neue App-Version veroeffentlicht. Bestehende Installationen sind nicht betroffen. Details: $RUN_URL"
+          fi

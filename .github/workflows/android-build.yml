@@ -9,9 +9,6 @@ on:
 permissions:
   contents: read
 
-env:
-  LIBRETUBE_TAG: v32.1
-
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -32,7 +29,7 @@ jobs:
           "$SDKMANAGER" --install "platforms;android-36" "build-tools;36.0.0" > /dev/null
 
       - name: LibreTube-Quellcode laden
-        run: git clone --depth 1 --branch "$LIBRETUBE_TAG" https://github.com/libre-tube/LibreTube.git upstream
+        run: git clone --depth 1 --branch "$(tr -d '[:space:]' < upstream-version.txt)" https://github.com/libre-tube/LibreTube.git upstream
 
       - name: Branding integrieren
         run: python3 tools/rebrand_libretube.py upstream
